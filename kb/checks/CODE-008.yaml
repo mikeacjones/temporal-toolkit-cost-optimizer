@@ -1,0 +1,27 @@
+id: CODE-008
+title: SDK version with a known cost bug
+confidence: high
+summary: >
+  A lockfile that pins a Temporal SDK version on the known-issues list below.
+  Findings come only from issues whose affected versions are confirmed.
+match:
+  source: lockfiles
+languages:
+  go: { status: implemented, via: internal/features.Detect }
+  python: { status: implemented, via: internal/features.Detect }
+  typescript: { status: implemented, via: internal/features.Detect }
+  java: { status: implemented, via: internal/features.Detect }
+  dotnet: { status: implemented, via: internal/features.Detect }
+known_issues:
+  - id: core-final-heartbeat
+    description: >
+      SDKs built on sdk-core sent an extra Heartbeat when a heartbeating
+      Activity completed successfully, costing one Action per such run. Fixed
+      in sdk-core PR #1019, merged 2025-09-26.
+    sdks: [python, typescript, dotnet, ruby]
+    # Releases that picked up the fix aren't confirmed, so this issue
+    # produces no findings yet. Fill in per SDK when confirmed, for example
+    # fixed_in: { python: "1.x.y" }.
+    fixed_in: {}
+    confirmed: false
+    source: "https://github.com/temporalio/sdk-core/pull/1019"

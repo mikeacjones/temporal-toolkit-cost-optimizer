@@ -1,0 +1,4 @@
+/bin/
+/.dev/*.db*
+# Internal field reports with links to Slack, Notion, and Drive. Never commit.
+/docs/FIELD-NOTES.md

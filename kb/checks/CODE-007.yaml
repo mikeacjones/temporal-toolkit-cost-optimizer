@@ -1,0 +1,35 @@
+id: CODE-007
+title: Start, then Signal or Update, in the same function
+confidence: medium
+summary: >
+  A Workflow start followed by a Signal or Update to the same Workflow ID in
+  the same function. Signal-With-Start costs one Action in total, and
+  Update-With-Start sends the start and the Update in one request.
+match:
+  first: start_workflow
+  then_any: [signal_workflow, update_workflow]
+  same: workflow_id
+languages:
+  go:
+    status: implemented
+    sdk_calls:
+      start_workflow: ["go.temporal.io/sdk/client.Client.ExecuteWorkflow"]
+      signal_workflow: ["go.temporal.io/sdk/client.Client.SignalWorkflow"]
+      update_workflow: ["go.temporal.io/sdk/client.Client.UpdateWorkflow"]
+    workflow_id: >
+      The same expression as StartWorkflowOptions.ID, or <run>.GetID() on the
+      WorkflowRun that ExecuteWorkflow returned.
+  python:
+    status: later
+    sdk_calls: { start_workflow: ["Client.start_workflow"], signal_workflow: ["WorkflowHandle.signal"], update_workflow: ["WorkflowHandle.execute_update"] }
+  typescript:
+    status: later
+    sdk_calls: { start_workflow: ["client.workflow.start"], signal_workflow: ["handle.signal"], update_workflow: ["handle.executeUpdate"] }
+  java:
+    status: later
+    sdk_calls: { start_workflow: ["WorkflowClient.start"], signal_workflow: ["stub signal method"], update_workflow: ["stub update method"] }
+features: [update-with-start]
+facts:
+  - claim: "Signal-With-Start is one Action in total, whether or not it starts the Workflow"
+    confirmed: true
+    source: cost/evaluate-cloud-actions#signal

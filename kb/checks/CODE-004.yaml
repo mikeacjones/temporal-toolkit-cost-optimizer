@@ -1,0 +1,34 @@
+id: CODE-004
+title: Payload encryption without compression
+confidence: medium
+summary: >
+  A payload codec chain that encrypts with no compression step before it.
+  Storage is billed on the bytes the client sends, and encrypted bytes don't
+  compress, so compression has to happen before encryption to help.
+match:
+  call: codec_chain
+  encrypt_names: [encrypt, crypt, aes, kms, cipher, seal]
+  compress_names: [zlib, compress, gzip, zstd, snappy, lz4, brotli]
+languages:
+  go:
+    status: implemented
+    sdk_calls:
+      codec_chain: ["go.temporal.io/sdk/converter.NewCodecDataConverter"]
+      compression: ["go.temporal.io/sdk/converter.NewZlibCodec"]
+    order: >
+      NewCodecDataConverter applies codecs last to first when encoding, so a
+      compression codec must be listed after the encryption codec to run
+      before it.
+  python:
+    status: later
+    sdk_calls: { codec_chain: ["DataConverter(payload_codec=...)"] }
+  typescript:
+    status: later
+    sdk_calls: { codec_chain: ["dataConverter.payloadCodecs"] }
+  java:
+    status: later
+    sdk_calls: { codec_chain: ["CodecDataConverter(..., List<PayloadCodec>)"] }
+facts:
+  - claim: "Storage is billed on the bytes the client sends; encrypting before compressing defeats compression"
+    confirmed: true
+    source: cost/best-practices-cost-optimization

@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Temporalio" Version="1.19.0" />
+  </ItemGroup>
+</Project>

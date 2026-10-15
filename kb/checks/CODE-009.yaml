@@ -1,0 +1,34 @@
+id: CODE-009
+title: No retry limit on an Activity that calls an external service
+confidence: advisory
+summary: >
+  Activity options with no MaximumAttempts, used for an Activity that makes
+  HTTP calls. The default retry policy retries forever, and every retry is an
+  Action, so an outage in the other service turns into a steady stream of
+  Actions.
+match:
+  call: execute_activity
+  options_without: ["RetryPolicy.MaximumAttempts"]
+  activity_is_external_if_any:
+    - "its body calls net/http (http.Get, http.Post, http.NewRequest, Client.Do)"
+    - "its name contains: http, api, webhook, fetch, request, call, client"
+languages:
+  go:
+    status: implemented
+    sdk_calls:
+      execute_activity: ["go.temporal.io/sdk/workflow.ExecuteActivity"]
+      options: ["go.temporal.io/sdk/workflow.WithActivityOptions", "go.temporal.io/sdk/workflow.ActivityOptions.RetryPolicy"]
+    resolution: >
+      Options come from the nearest workflow.WithActivityOptions in the same
+      function whose options are a literal or a variable set to one. Calls
+      with options tcopt can't see are skipped.
+  python:
+    status: later
+  typescript:
+    status: later
+  java:
+    status: later
+facts:
+  - claim: "The default retry policy has unlimited attempts, and each retry is an Action"
+    confirmed: true
+    source: cost/evaluate-cloud-actions#activity

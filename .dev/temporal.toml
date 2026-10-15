@@ -1,0 +1,4 @@
+# Profile for the local dev server started by `just dev-server`.
+[profile.devlocal]
+address = "localhost:17233"
+namespace = "default"

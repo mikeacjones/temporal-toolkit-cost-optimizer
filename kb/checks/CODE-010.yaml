@@ -1,0 +1,28 @@
+id: CODE-010
+title: Status read with a Query where Describe works
+confidence: medium
+summary: >
+  A Query handler that only returns a value the Workflow also writes to a
+  Search Attribute or memo. Callers can read that value with Describe or List,
+  which aren't Actions, instead of a Query, which is.
+match:
+  handler: query_handler
+  returns_only: value
+  value_also_written_by: [upsert_search_attributes, upsert_memo]
+languages:
+  go:
+    status: implemented
+    sdk_calls:
+      query_handler: ["go.temporal.io/sdk/workflow.SetQueryHandler", "go.temporal.io/sdk/workflow.SetQueryHandlerWithOptions"]
+      upsert_search_attributes: ["go.temporal.io/sdk/workflow.UpsertTypedSearchAttributes", "go.temporal.io/sdk/workflow.UpsertSearchAttributes"]
+      upsert_memo: ["go.temporal.io/sdk/workflow.UpsertMemo"]
+  python:
+    status: later
+  typescript:
+    status: later
+  java:
+    status: later
+facts:
+  - claim: "A Query is one Action; Describe and List aren't Actions but share a Visibility rate limit"
+    confirmed: true
+    source: cost/evaluate-cloud-actions#query

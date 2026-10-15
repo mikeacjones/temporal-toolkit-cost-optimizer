@@ -1,0 +1,135 @@
+# Feature catalog: newer Temporal features that a fix may recommend
+# (PLAN.md section 6.11). tcopt recommends a feature only when the user can
+# use it: findings show the stage and whether the user's SDK has it.
+#
+# Stages: ga, public-preview, pre-release, unknown.
+# min: the first SDK version where the feature reached the listed stage, or,
+# for stage unknown, the first version that shipped the API.
+# Every fact cites its source in a comment. "unknown" means no source
+# confirmed it; it is never a guess. Reviewed with each tcopt release.
+snapshot: 2026-10-15
+features:
+  - id: standalone-activity
+    title: Standalone Activities
+    docs: standalone-activity
+    # https://docs.temporal.io/standalone-activity#temporal-cloud-support
+    # ("Generally Available in Temporal Cloud, in all regions")
+    cloud: ga
+    sdks:
+      go: { stage: ga, min: "1.49.0" }          # sdk-go v1.49.0 release notes: "Standalone Activities are now GA"
+      python: { stage: ga, min: "1.33.0" }      # sdk-python 1.33.0 release notes: "now generally available (GA)"
+      dotnet: { stage: ga, min: "1.19.0" }      # sdk-dotnet 1.19.0 release notes: "now generally available (GA)"
+      java: { stage: ga, min: "1.39.0" }        # sdk-java v1.39.0 release notes: "Standalone Activities are stable"
+      typescript: { stage: ga, min: "1.24.0" }  # sdk-typescript v1.24.0: "Standalone Activities APIs are stable"; docs prerequisites: v1.24.0
+      ruby: { stage: ga, min: "1.9.0" }         # sdk-ruby v1.9.0 release notes: "now generally available (GA)"
+    saves: "1 Action per execution compared with a Workflow that wraps one Activity"
+    used_by: [WF-001, WF-002, CFG-010]
+
+  - id: standalone-activity-start-delay
+    title: Start delay for Standalone Activities
+    docs: standalone-activity
+    # https://docs.temporal.io/standalone-activity#feature-release-stages
+    # ("Generally Available, including Start Delay")
+    cloud: ga
+    sdks:
+      go: { stage: ga, min: "1.49.0" }          # StartActivityOptions.StartDelay in go.temporal.io/sdk v1.49.0 (internal/internal_activity_client.go); GA per v1.49.0 notes
+      python: { stage: ga, min: "1.33.0" }      # start_delay added in 1.27.0 ("Add start_delay for SAA", #1491); GA in 1.33.0
+      typescript: { stage: ga, min: "1.24.0" }  # ActivityOptions.startDelay added in v1.18.0 (#2048); stable in v1.24.0
+      java: { stage: unknown }                  # option name and version not confirmed
+      dotnet: { stage: unknown }                # 1.19.0 notes list StartDelay on ActivityExecution (describe output); start option not confirmed
+    saves: "the Timer a wrapping Workflow would start before its Activity"
+    used_by: [WF-002, CFG-007]
+
+  - id: workflow-start-delay
+    title: Workflow start delay
+    docs: workflow-execution/timers-delays
+    # https://docs.temporal.io/workflow-execution/timers-delays documents Start
+    # Delay with no release-stage banner; no source states a stage.
+    cloud: unknown
+    sdks:
+      go: { stage: unknown, min: "1.25.0" }     # sdk-go v1.25.0 release notes: "(Experimental) Start delay"
+      java: { stage: unknown, min: "1.22.1" }   # sdk-java v1.22.1 release notes: "(Experimental) Start delay"
+      python: { stage: unknown, min: "1.4.0" }  # sdk-python 1.4.0 added start_delay; 1.6.0 "Remove experimental flag from start_delay" (#492)
+      typescript: { stage: unknown, min: "1.9.0" } # sdk-typescript v1.9.0: "Add startDelay option to workflow start" (#1300)
+      dotnet: { stage: unknown }                # documented (develop/dotnet/workflows/schedules#start-delay); version not confirmed
+    saves: "1 Action per execution compared with a leading Timer (to confirm, PLAN.md 6.11)"
+    used_by: [TMR-005, CFG-007]
+
+  - id: update-with-start
+    title: Update-With-Start
+    docs: sending-messages
+    # Temporal blog, Durable Digest July 2025: "Update-With-Start is generally
+    # available"; temporal server v1.28.0 release notes: "Update-With-Start GA".
+    cloud: ga
+    sdks:
+      go: { stage: unknown, min: "1.31.0" }     # sdk-go v1.31.0 added client.UpdateWithStartWorkflow (earlier 1.29.0 API was replaced)
+      java: { stage: unknown, min: "1.27.0" }   # sdk-java v1.26.0 added it as pre-release; v1.27.0 renamed it to startUpdateWithStart
+      python: { stage: unknown, min: "1.9.0" }  # Durable Digest Jan 2025: Python 1.9.0 adds experimental Update-With-Start
+      dotnet: { stage: unknown, min: "1.4.0" }  # Durable Digest Jan 2025: .NET 1.4.0 adds experimental Update-With-Start
+      typescript: { stage: unknown, min: "1.11.6" } # Durable Digest Jan 2025: TypeScript 1.11.6 experimental
+    saves: "about 1 Action per execution compared with a start followed by an Update"
+    used_by: [SIG-002, CODE-007]
+
+  - id: next-retry-delay
+    title: Next Retry Delay on Application Failures
+    docs: encyclopedia/retry-policies
+    # https://docs.temporal.io/encyclopedia/retry-policies#retry-interval
+    # documents it with no release-stage banner. Requires Temporal Server
+    # 1.24.2+ (Go SDK ApplicationErrorOptions doc comment).
+    cloud: unknown
+    sdks:
+      go: { stage: unknown, min: "1.26.0" }     # pkg.go.dev: ApplicationErrorOptions.NextRetryDelay "added in v1.26.0"
+      python: { stage: unknown }                # documented (develop/python/activities/timeouts#next-retry-delay); version not confirmed
+      typescript: { stage: unknown }            # documented; version not confirmed
+      java: { stage: unknown }                  # documented; version not confirmed
+      dotnet: { stage: unknown }                # documented; version not confirmed
+    saves: "retries spent before a known recovery time"
+    used_by: [ACT-001, ACT-002]
+
+  - id: activity-pause
+    title: Activity Pause
+    docs: activity-operations/pause
+    # https://docs.temporal.io/activity-operations: "Activity Operations are in
+    # Public Preview". Pause is an operator command (CLI, UI, gRPC), not an
+    # SDK client method. The SDK versions below are the ones whose Activities
+    # can detect a Pause on Heartbeat.
+    cloud: public-preview
+    sdks:
+      go: { stage: public-preview, min: "1.34.0" }        # docs: "Go v1.34.0+ Catch activity.ErrActivityPaused"
+      java: { stage: public-preview, min: "1.29.0" }      # docs: "Java v1.29.0+"
+      typescript: { stage: public-preview, min: "1.12.3" } # docs: "TypeScript v1.12.3+"
+      python: { stage: public-preview, min: "1.12.0" }    # docs: "Python v1.12.0+"
+      dotnet: { stage: public-preview, min: "1.7.0" }     # docs: ".NET v1.7.0+"
+    saves: "retries of an Activity that can't succeed until something is fixed"
+    used_by: [ACT-001]
+
+  - id: nexus-standalone-activity
+    title: Activity-backed Nexus Operations (Nexus Standalone Activity)
+    docs: nexus/standalone-activity
+    # https://docs.temporal.io/nexus/standalone-activity: "Currently in:
+    # Pre-release". sdk-go v1.49.0 notes: "Standalone Activities as Nexus
+    # operations remain experimental".
+    cloud: pre-release
+    sdks:
+      go: { stage: pre-release }                # minimum version not confirmed
+      python: { stage: pre-release }            # sdk-python 1.33.0: "as Nexus operations remain experimental"
+      dotnet: { stage: pre-release }            # sdk-dotnet 1.19.0: "as Nexus operations remain experimental"
+      java: { stage: unknown }
+      typescript: { stage: unknown }
+    saves: "1 Action per call compared with a Workflow-backed Operation that runs one Activity"
+    used_by: [NEX-001]
+
+  - id: standalone-nexus-operation
+    title: Standalone Nexus Operations
+    docs: standalone-nexus-operation
+    # https://docs.temporal.io/standalone-nexus-operation: "Currently in:
+    # Pre-release". Minimums from temporal server v1.32.0 release notes.
+    cloud: pre-release
+    sdks:
+      go: { stage: pre-release, min: "1.46.0" }
+      java: { stage: pre-release, min: "1.36.1" }
+      dotnet: { stage: pre-release, min: "1.16.0" }
+      python: { stage: pre-release, min: "1.30.0" }
+      typescript: { stage: pre-release, min: "1.20.2" }
+    saves: "1 Action per execution compared with a Workflow that only calls one Nexus Operation"
+    used_by: [NEX-002]

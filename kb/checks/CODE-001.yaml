@@ -1,0 +1,32 @@
+id: CODE-001
+title: Query polling in client code
+confidence: medium
+summary: >
+  A Workflow Query sent from a loop, a ticker, or an HTTP handler. Each Query
+  is one Action, so a dashboard or poller that queries on a schedule pays
+  Actions whether or not anything changed.
+match:
+  calls: [query_workflow]
+  inside_any: [loop, http_handler]
+languages:
+  go:
+    status: implemented
+    sdk_calls:
+      query_workflow:
+        - "go.temporal.io/sdk/client.Client.QueryWorkflow"
+        - "go.temporal.io/sdk/client.Client.QueryWorkflowWithOptions"
+    loop: "for or range statement, including range over a time.Ticker channel"
+    http_handler: "a function with (http.ResponseWriter, *http.Request) parameters, or a function literal passed to HandleFunc"
+  python:
+    status: later
+    sdk_calls: { query_workflow: ["temporalio.client.WorkflowHandle.query"] }
+  typescript:
+    status: later
+    sdk_calls: { query_workflow: ["WorkflowHandle.query"] }
+  java:
+    status: later
+    sdk_calls: { query_workflow: ["WorkflowStub.query", "query methods on a typed stub"] }
+facts:
+  - claim: "Each Query is one Action"
+    confirmed: true
+    source: cost/evaluate-cloud-actions#query

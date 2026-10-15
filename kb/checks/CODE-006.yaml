@@ -1,0 +1,25 @@
+id: CODE-006
+title: Java Local Activity arguments recorded in markers
+confidence: advisory
+summary: >
+  Java Local Activity options without setDoNotIncludeArgumentsIntoMarker(true).
+  Java reportedly records Local Activity arguments in their markers by default,
+  which grows history and storage. Java only; no Go rule.
+match:
+  options: local_activity_options
+  missing: ["setDoNotIncludeArgumentsIntoMarker(true)"]
+languages:
+  go:
+    status: not-applicable
+    reason: "The Go SDK doesn't record Local Activity arguments in markers."
+  java:
+    status: later
+    sdk_calls: { local_activity_options: ["LocalActivityOptions.Builder"] }
+  python:
+    status: not-applicable
+  typescript:
+    status: not-applicable
+facts:
+  - claim: "Java records Local Activity arguments in markers by default"
+    confirmed: false
+    note: "One customer's history didn't show it. Don't ship findings until confirmed."

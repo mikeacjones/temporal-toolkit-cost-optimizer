@@ -1,0 +1,10 @@
+version = 1
+
+[[package]]
+name = "requests"
+version = "2.32.3"
+
+[[package]]
+name = "temporalio"
+version = "1.33.0"
+source = { registry = "https://pypi.org/simple" }

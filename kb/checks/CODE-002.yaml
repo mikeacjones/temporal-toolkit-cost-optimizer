@@ -1,0 +1,36 @@
+id: CODE-002
+title: Wait with a timeout inside an Update or Signal handler
+confidence: medium
+summary: >
+  A wait with a timeout inside an Update or Signal handler. The SDK starts a
+  Timer for each such wait, and each Timer is one Action, even when the
+  condition is met before it fires. Pairs with TMR-003 in history.
+match:
+  calls: [await_with_timeout]
+  inside_any: [update_handler, signal_handler]
+languages:
+  go:
+    status: implemented
+    sdk_calls:
+      await_with_timeout:
+        - "go.temporal.io/sdk/workflow.AwaitWithTimeout"
+        - "go.temporal.io/sdk/workflow.AwaitWithOptions (with AwaitOptions.Timeout set)"
+      update_handler:
+        - "go.temporal.io/sdk/workflow.SetUpdateHandler"
+        - "go.temporal.io/sdk/workflow.SetUpdateHandlerWithOptions"
+      signal_handler:
+        - "callback passed to workflow.Selector.AddReceive"
+    handler_resolution: "function literals, and named functions or methods declared in the same package"
+  python:
+    status: later
+    sdk_calls: { await_with_timeout: ["temporalio.workflow.wait_condition(timeout=...)"], update_handler: ["@workflow.update"], signal_handler: ["@workflow.signal"] }
+  typescript:
+    status: later
+    sdk_calls: { await_with_timeout: ["condition(fn, timeout)"], update_handler: ["setHandler(updateDef, ...)"], signal_handler: ["setHandler(signalDef, ...)"] }
+  java:
+    status: later
+    sdk_calls: { await_with_timeout: ["Workflow.await(Duration, ...)"], update_handler: ["@UpdateMethod"], signal_handler: ["@SignalMethod"] }
+facts:
+  - claim: "A wait with a timeout starts a Timer, which is one Action"
+    confirmed: true
+    source: cost/evaluate-cloud-actions#timer
