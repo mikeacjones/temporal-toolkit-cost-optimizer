@@ -28,7 +28,7 @@ func TestACT003(t *testing.T) {
 	detecttest.Run(t, act003{}, []detecttest.Case{
 		{History: "act003_positive", Want: [][]int64{{5, 6}}},
 		{History: "act003_negative"},
-		{History: "act005_positive"}, // never retried
+		{History: "act004_negative"}, // never retried
 	})
 }
 
@@ -37,14 +37,6 @@ func TestACT004(t *testing.T) {
 	detecttest.Run(t, act004{}, []detecttest.Case{
 		{History: "act004_positive", Want: [][]int64{{5, 7}}, Saved: 11},
 		{History: "act004_negative"},
-	})
-}
-
-func TestACT005(t *testing.T) {
-	detecttest.Run(t, act005{}, []detecttest.Case{
-		{History: "act005_positive", Want: [][]int64{{5, 11, 17, 23, 29, 35}}, Saved: 5},
-		{History: "act005_negative"},
-		{History: "act004_positive"},
 	})
 }
 
@@ -67,7 +59,7 @@ func TestLA003(t *testing.T) {
 	detecttest.Run(t, la003{}, []detecttest.Case{
 		{History: "la003_positive", Want: [][]int64{{4, 7, 10}}, Saved: 3},
 		{History: "la003_negative"},
-		{History: "act005_positive"}, // no Local Activities
+		{History: "act004_negative"}, // no Local Activities
 	})
 }
 

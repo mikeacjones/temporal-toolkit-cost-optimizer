@@ -13,7 +13,7 @@ Changes in v0.7:
 - Detectors recommend newer Temporal features where they cut cost, such as Standalone Activities and start delays. A feature catalog checks the user's SDK versions (section 6.11).
 - The docs index (`llms.txt`) ships with the binary alongside the design-pattern catalog, and the agent can fetch any docs page from it (section 6.7).
 - A new playbook has the agent match code to design patterns that cost less (section 10.7).
-- `tcopt` never recommends Local Activities as a cost saving (section 6.4).
+- `tcopt` never recommends Local Activities, or combining Activities, as a cost saving (section 6.4).
 
 Changes in v0.6: detection now goes beyond Event History, adding Cloud metrics, Namespace configuration, and static code checks (section 6.9). Storage gets its own detectors and cost estimate (section 6.10). The agent can investigate problems that need judgment (section 10.7). The new patterns come from internal Slack, Notion, Drive, and support tickets, collected in `docs/FIELD-NOTES.md`. Earlier changes:
 
@@ -256,7 +256,6 @@ The Action counts these detectors rely on come from `kb/billing/actions.yaml` (s
 | ACT-002 | Retrying errors that won't succeed | The same failure type and message on every attempt, such as a 4xx, validation, or auth error | Add the type to `NonRetryableErrorTypes` | attempt−1 | Medium |
 | ACT-003 | No retry limit on external calls | `maximum_attempts` is 0, no schedule-to-close timeout, and the Activity retried | Set a limit | Risk | Advisory |
 | ACT-004 | Heartbeat volume | Heartbeat timeout set on long Activities; estimate is duration ÷ (0.8 × timeout) | Longer timeout, or fewer Heartbeat calls | Estimate | Advisory; Heartbeats aren't in history |
-| ACT-005 | Many tiny Activities in a row | k or more sequential Activities with p50 under 50 ms and no branching | Merge them only where per-step visibility and retries don't matter. Never Local Activities (see note below the table). | k−1 per run | Advisory; costs observability |
 | LA-001 | Local Activity retries | `nonfirst_local_activity_execution_attempts` above 0. SDKs only meter attempts after the first Workflow Task, so this fires when retries outlast a Workflow Task. | Fix the failure, or use a regular Activity | The metered attempts | High |
 | CHD-001 | Child Workflow that runs one Activity | Child history is start, one Activity, complete | Call the Activity directly. Starting a child costs 2 Actions. | 2 per child | High |
 | WF-001 | Workflow that only wraps one Activity | One Activity, no Signals, Timers, Updates, Queries handled, or Child Workflows | Start it as a Standalone Activity. The same Activity code runs unchanged; the caller uses the client's Activity start instead of a Workflow start. The locator finds the start call sites. | 1 per execution | High where the SDK supports it (section 6.11) |
@@ -282,6 +281,8 @@ The Action counts these detectors rely on come from `kb/billing/actions.yaml` (s
 | STO-007 | The same large header in every payload | An identical tracing or security header of 1 KB or more on every Activity input | Trim the header, or store it once | Storage | Medium |
 
 `tcopt` never recommends Local Activities as a way to save Actions. They fit a narrow set of short, latency-sensitive calls, and using them for cost is an anti-pattern: they retry together, give up Worker-level isolation, and can trigger Workflow Task heartbeats. The Local Activity detectors (LA-001, LA-003, STO-006) only flag existing Local Activities that cost more than expected, and their fixes point toward regular Activities.
+
+`tcopt` also never recommends combining Activities into fewer, larger ones. Activity boundaries set retries, timeouts, failure isolation, and visibility, and trading those for Actions is the wrong default.
 
 Each detector has a positive and a negative golden history in `testdata/`, and the Search Attribute detectors have a `TemporalChangeVersion` case.
 
@@ -965,7 +966,7 @@ One playbook, `pattern-fit`, asks the agent to match the user's code to a cheape
 | Retries against a paid or rate-limited API | Fixed Count of Retries, Delayed Retry, or Resumable Activity |
 | A start followed by an Update to get a quick answer | Early Return (Update-With-Start) |
 
-The suggestion is a hypothesis like any other. It cites the code, the pattern's page in the knowledge base, and the parameters Go needs to estimate the saving. When a pattern depends on a newer feature, the feature catalog's check applies, so the agent can't recommend something the user's SDK doesn't support. The playbook excludes Local Activities as a cost fix.
+The suggestion is a hypothesis like any other. It cites the code, the pattern's page in the knowledge base, and the parameters Go needs to estimate the saving. When a pattern depends on a newer feature, the feature catalog's check applies, so the agent can't recommend something the user's SDK doesn't support. The playbook excludes Local Activities and combining Activities as cost fixes.
 
 Each investigation follows a playbook in `kb/playbooks/<id>.md`. A playbook names:
 - the deterministic signal that starts it, such as a MET or CFG check or a finding

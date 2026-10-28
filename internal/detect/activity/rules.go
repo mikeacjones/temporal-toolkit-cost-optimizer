@@ -25,17 +25,6 @@ func retryActions(r *billing.Rules, n int32) float64 {
 	return 0
 }
 
-// scheduleActions returns the Actions billed for scheduling one Activity.
-func scheduleActions(r *billing.Rules) float64 {
-	if r == nil {
-		return 0
-	}
-	if rule, ok := r.Rule(enumspb.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED); ok {
-		return rule.Actions
-	}
-	return 0
-}
-
 // heartbeatActions returns the Actions billed per Activity Heartbeat that
 // reaches the server. Heartbeats aren't in history, so the rule sits in
 // not_in_history.

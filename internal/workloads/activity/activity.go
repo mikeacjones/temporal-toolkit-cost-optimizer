@@ -38,9 +38,6 @@ func init() {
 			// ACT-004: a 9 s Activity that heartbeats with a 1 s timeout, against a short one.
 			{Golden: "act004_positive", Workflow: Heartbeating, Args: []any{9 * time.Second, time.Second}, Timeout: 2 * time.Minute},
 			{Golden: "act004_negative", Workflow: Heartbeating, Args: []any{500 * time.Millisecond, time.Second}},
-			// ACT-005: six tiny Activities one after another, against six in parallel.
-			{Golden: "act005_positive", Workflow: TinySteps, Args: []any{6, false}},
-			{Golden: "act005_negative", Workflow: TinySteps, Args: []any{6, true}},
 			// ACT-006: only a Worker without Ship polls until the Activity
 			// has failed; then a Worker with Ship joins.
 			{Golden: "act006_positive", Workflow: ShipOrder, Drive: joinShipWorker, Timeout: 2 * time.Minute},
@@ -61,7 +58,6 @@ func init() {
 		Load: []workloads.LoadItem{
 			{Weight: 30, Workflow: CallWithRetry, Args: []any{RetryInput{Activity: "Flaky", FailUntil: 12, Interval: ms(20)}}},
 			{Weight: 20, Workflow: CallWithRetry, Args: []any{RetryInput{Activity: "Reject", MaxAttempts: 4, Interval: ms(20)}}},
-			{Weight: 30, Workflow: TinySteps, Args: []any{6, false}},
 			{Weight: 20, Workflow: LocalRetry, Args: []any{8, 500 * time.Millisecond},
 				Options: client.StartWorkflowOptions{WorkflowTaskTimeout: 2 * time.Second}},
 		},
@@ -74,7 +70,6 @@ func startWorkers(c client.Client, tq string) (func(), error) {
 	w := worker.New(c, tq, worker.Options{})
 	w.RegisterWorkflow(CallWithRetry)
 	w.RegisterWorkflow(Heartbeating)
-	w.RegisterWorkflow(TinySteps)
 	w.RegisterWorkflow(ShipOrder)
 	w.RegisterWorkflow(LocalRetry)
 	w.RegisterWorkflow(LocalSlow)
@@ -82,7 +77,6 @@ func startWorkers(c client.Client, tq string) (func(), error) {
 	w.RegisterActivity(Reject)
 	w.RegisterActivity(Varying)
 	w.RegisterActivity(HeartbeatFor)
-	w.RegisterActivity(Step)
 	if err := w.Start(); err != nil {
 		return nil, err
 	}
@@ -157,31 +151,6 @@ func HeartbeatFor(ctx context.Context, d time.Duration) error {
 	}
 	return nil
 }
-
-// TinySteps runs n tiny Activities, one after another or all at once.
-func TinySteps(ctx workflow.Context, n int, parallel bool) error {
-	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Second})
-	var fs []workflow.Future
-	for i := range n {
-		f := workflow.ExecuteActivity(ctx, Step, i)
-		if parallel {
-			fs = append(fs, f)
-			continue
-		}
-		if err := f.Get(ctx, nil); err != nil {
-			return err
-		}
-	}
-	for _, f := range fs {
-		if err := f.Get(ctx, nil); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// Step does almost nothing.
-func Step(_ context.Context, i int) (int, error) { return i + 1, nil }
 
 // ShipOrder calls Ship, which only the second Worker registers.
 func ShipOrder(ctx workflow.Context) error {
