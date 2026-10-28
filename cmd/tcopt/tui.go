@@ -69,7 +69,7 @@ func tuiCmd() *cobra.Command {
 	cmd.Flags().DurationVar(&window, "window", 7*24*time.Hour, "look at executions started within this window")
 	cmd.Flags().IntVar(&opts.Parallel, "parallel", 4, "history fetches in flight")
 	cmd.Flags().BoolVar(&reduced, "reduced-motion", false, "no starfield or Ziggy motion")
-	cmd.Flags().StringArrayVar(&repos, "repo", nil, "a repo to run code checks on and read SDK versions from (repeatable; default: the saved repos)")
+	cmd.Flags().StringArrayVar(&repos, "repo", nil, "a repo to read SDK versions from (repeatable; default: the saved repos)")
 	cmd.Flags().BoolVar(&opts.IncludePreview, "include-preview", false, "show findings whose only fix is a pre-release feature")
 	return cmd
 }

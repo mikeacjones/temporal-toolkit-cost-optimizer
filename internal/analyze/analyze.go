@@ -34,10 +34,6 @@ type Options struct {
 	SampleSize int
 	Detectors  []string
 	Parallel   int
-	// Collectors run the checks that read something other than history:
-	// Namespace config, Cloud metrics, and code. Each one that fails adds a
-	// caveat instead of stopping the analysis.
-	Collectors []Collector
 	// MaxChildren caps the Child Workflow histories fetched per Workflow
 	// Type for detectors that read them.
 	MaxChildren int
@@ -47,37 +43,11 @@ type Options struct {
 	// IncludePreview keeps findings whose only fix is a pre-release
 	// feature. They're hidden by default.
 	IncludePreview bool
-	// Caveats are notes for the report from whoever set up the analysis,
-	// such as checks that were left out.
-	Caveats []string
-}
-
-// Caveater is implemented by collectors that have notes for the report
-// even when they succeed, such as how little metric data they saw.
-type Caveater interface{ Caveats() []string }
-
-// Collector produces findings from a source other than sampled histories.
-type Collector interface {
-	// Name is shown in progress and caveats, such as "Namespace config".
-	Name() string
-	Collect(ctx context.Context, env *Env) ([]estimate.Finding, error)
-}
-
-// Env is what a collector can read: the Namespace, the history analysis so
-// far, and the billing rules.
-type Env struct {
-	Reader   *history.Reader
-	Rules    *billing.Rules
-	Window   time.Duration
-	Types    []TypeSummary
-	Findings []estimate.Finding
-	// Titles maps check IDs to titles from the guidance.
-	Titles map[string]string
 }
 
 // Progress reports what the analysis is doing.
 type Progress struct {
-	Stage        string // "rank", "sample", "fetch", "children", "detect", "collect"
+	Stage        string // "rank", "sample", "fetch", "children", "detect"
 	WorkflowType string
 	Done, Total  int
 }
@@ -259,39 +229,10 @@ func Run(ctx context.Context, r *history.Reader, opts Options, progress func(Pro
 		rep.Findings = append(rep.Findings, findings...)
 		rep.Types = append(rep.Types, sum)
 	}
-	rep.Caveats = append(rep.Caveats, opts.Caveats...)
 	if dctx.RetentionHours == 0 {
 		rep.Caveats = append(rep.Caveats, "Couldn't read the Namespace's retention, so storage estimates for closed Workflows are missing.")
 	}
 
-	env := &Env{Reader: r, Rules: rules, Window: opts.Window, Types: rep.Types, Findings: rep.Findings, Titles: titles}
-	for _, c := range opts.Collectors {
-		progress(Progress{Stage: "collect", WorkflowType: c.Name()})
-		fs, err := c.Collect(ctx, env)
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
-		// A collector can return findings and an error together, when some
-		// of its checks ran and others couldn't.
-		if err != nil {
-			rep.Caveats = append(rep.Caveats, fmt.Sprintf("Some %s checks didn't run: %v", c.Name(), err))
-		}
-		if cv, ok := c.(Caveater); ok {
-			rep.Caveats = append(rep.Caveats, cv.Caveats()...)
-		}
-		for _, f := range fs {
-			if f.Title == "" {
-				f.Title = titles[f.ID]
-			}
-			if f.Guidance == "" {
-				f.Guidance = f.ID
-			}
-			if p := f.ProjectedMonthly; p != nil {
-				rep.ActionsSavedPerMonth += p.Actions
-			}
-			rep.Findings = append(rep.Findings, f)
-		}
-	}
 	rep.Findings, rep.Caveats = applyFeatures(rep.Findings, rep.Caveats, opts)
 	estimate.SortFindings(rep.Findings)
 	return rep, nil

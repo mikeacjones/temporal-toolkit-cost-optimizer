@@ -58,15 +58,6 @@ func Pill(text string) string {
 		Render(" " + text + " ")
 }
 
-// PendingPill is the one pink element: an approval waiting on the user.
-func PendingPill(text string) string {
-	return lipgloss.NewStyle().
-		Foreground(lipgloss.Color(SpaceBlack)).
-		Background(lipgloss.Color(Pink)).
-		Bold(true).
-		Render(" " + text + " ")
-}
-
 // Badge renders a confidence badge. The word always shows, so color never
 // carries the meaning alone.
 func Badge(confidence string) string {
@@ -77,8 +68,6 @@ func Badge(confidence string) string {
 		return lipgloss.NewStyle().Foreground(lipgloss.Color(Yellow)).Render("[MED]")
 	case "advisory":
 		return lipgloss.NewStyle().Foreground(lipgloss.Color(Slate)).Render("[ADV]")
-	case "agent":
-		return lipgloss.NewStyle().Foreground(lipgloss.Color(Indigo100)).Render("[AGENT]")
 	}
 	return fmt.Sprintf("[%s]", confidence)
 }

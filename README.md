@@ -4,10 +4,9 @@
 
 It has:
 
-- history detectors for the patterns in [docs/PLAN.md](docs/PLAN.md) section 6.4: Search Attribute upserts, Activity retries, Timers, thin Workflows and Child Workflows, Signals, Continue-As-New, Local Activity overhead, and storage
-- Namespace and Schedule checks (CFG), Cloud metrics checks (MET), and Go code checks (CODE), from section 6.9
+- history detectors for the patterns in [docs/PLAN.md](docs/PLAN.md) section 6.4: Search Attribute upserts, Activity retry limits and unregistered Activities, Local Activities that outlast the Workflow Task timeout, thin Workflows and Child Workflows, leading Timers, start-then-Signal, and large payloads
 - each Workflow Type's current Actions per run and per month, from billing rules kept as data in `kb/billing/actions.yaml`
-- reviewed fix guidance for every check in `kb/guidance/`, and a feature catalog that says whether your SDK version has a newer feature a fix needs
+- reviewed fix guidance for every detector in `kb/guidance/`, and a feature catalog that says whether your SDK version has a newer feature a fix needs
 - `tcopt`, which opens the TUI, and `tcopt analyze`, a headless run that writes Markdown or JSON
 
 Every saving is in Actions, or GB-hours for storage. Nothing is priced in currency.
@@ -33,11 +32,7 @@ bin/tcopt kb SA-002
 
 Without `--types`, `tcopt` analyzes the five Workflow Types with the most executions in the window, 200 sampled executions each.
 
-Some checks need more than the Namespace connection:
-
-- Namespace settings checks (replication, Fairness, capacity, Export, retention) read the Cloud Ops API with the connection's API key. Schedule checks work everywhere.
-- Code checks and SDK version checks need a repo: `--repo ~/src/orders` (repeatable), or `repos` in `~/.config/tcopt/config.toml`.
-- Cloud metrics checks need an OpenMetrics key from a Service Account with the Metrics Read-Only role, in `TCOPT_METRICS_API_KEY` or the keychain.
+- To say whether your SDK has a feature a fix needs, `tcopt` reads lockfiles in a repo: `--repo ~/src/orders` (repeatable), or `repos` in `~/.config/tcopt/config.toml`.
 - Findings whose only fix is a pre-release feature are hidden unless you pass `--include-preview`.
 
 ## Try it locally

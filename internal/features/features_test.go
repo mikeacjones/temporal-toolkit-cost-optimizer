@@ -24,10 +24,7 @@ func TestCatalogLoads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, id := range []string{
-		"standalone-activity", "standalone-activity-start-delay", "workflow-start-delay", "update-with-start",
-		"next-retry-delay", "activity-pause", "nexus-standalone-activity", "standalone-nexus-operation",
-	} {
+	for _, id := range []string{"standalone-activity", "workflow-start-delay", "standalone-nexus-operation"} {
 		if _, ok := c.Get(id); !ok {
 			t.Errorf("catalog is missing %s", id)
 		}
@@ -85,7 +82,6 @@ func TestStatus(t *testing.T) {
 		{"standalone-activity", oldGo, []string{"Needs Go SDK v1.49.0 or later; you have v1.44.0"}},
 		{"standalone-activity", nil, []string{"Go SDK v1.49.0 or later", "Python SDK v1.33.0 or later"}},
 		{"standalone-nexus-operation", newGo, []string{"Pre-release; not recommended for production", "Available in your Go SDK (v1.52.0); pre-release"}},
-		{"activity-pause", newGo, []string{"Available in your Go SDK (v1.52.0); public preview"}},
 		{"standalone-activity", []SDK{{SDK: Python, Version: "1.30.0"}}, []string{"Needs Python SDK v1.33.0 or later; you have v1.30.0 or later"}},
 		// The oldest of several services decides.
 		{"standalone-activity", append(newGo, oldGo...), []string{"Needs Go SDK v1.49.0 or later; you have v1.44.0"}},

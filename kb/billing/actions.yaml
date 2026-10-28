@@ -62,7 +62,3 @@ not_in_history:
   - { operation: schedule_run, actions: 3, source: cost/evaluate-cloud-actions#schedule }
   - { operation: export, actions: 1, per: exported_workflow, source: cost/evaluate-cloud-actions#export }
   - { operation: workflow_task_heartbeat, actions: 1, note: "a Workflow Task that completes with no commands while a Local Activity runs", source: cost/evaluate-cloud-actions#activity }
-namespace_multipliers:
-  - { setting: replication, actions: 2.0, storage: 2.0, note: "the billable_action_count metric reports 1x" }
-  - { setting: fairness, actions: 1.1, per: hour_enabled, source: cost/evaluate-cloud-actions#fairness }
-  - { setting: provisioned_capacity, floor_actions_per_hour_per_extra_tru: 360000, source: cost/cloud-pricing }

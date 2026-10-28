@@ -31,7 +31,7 @@ import (
 )
 
 // The login endpoints and client ID are tcld's. tcopt should get its own
-// OAuth client ID before release (PLAN.md section 14); TCOPT_OAUTH_CLIENT_ID
+// OAuth client ID before release (PLAN.md section 11); TCOPT_OAUTH_CLIENT_ID
 // overrides it until then.
 const (
 	DefaultDomain   = "login.tmprl.cloud"

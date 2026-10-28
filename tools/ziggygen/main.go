@@ -2,7 +2,7 @@
 // blink images, cropped to the same box so the blink lines up, and scaled
 // down to a size that's cheap to embed and send to the terminal. Builds
 // only include them with the `brand` tag, because Ziggy may only ship after
-// brand approval (PLAN.md section 14, item 1).
+// brand approval (PLAN.md section 11, item 1).
 //
 //	go run ./tools/ziggygen -in ~/Source/temporal-toolkit-demo-buildkit/assets/brand/ziggy-peek.png \
 //	  -blink ~/Source/temporal-toolkit-demo-buildkit/assets/brand/ziggy-blink.png

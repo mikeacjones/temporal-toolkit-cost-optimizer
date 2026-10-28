@@ -1,8 +1,5 @@
-// Package tui is tcopt's Bubble Tea interface.
-//
-// In this first cut the TUI runs the analysis in-process. Phase 2 moves it
-// into the Session and Analysis Workflows, and the state hub feeds this
-// model instead.
+// Package tui is tcopt's Bubble Tea interface. It runs the analysis
+// in-process, the same way `tcopt analyze` does.
 package tui
 
 import (
@@ -31,7 +28,7 @@ type Options struct {
 	// walks the user through setup.
 	Target  *config.Target
 	Analyze analyze.Options
-	// Repos override the saved repos for code checks and SDK versions.
+	// Repos override the saved repos for SDK versions.
 	Repos []string
 	// RPS and CacheDir configure history reads.
 	RPS      float64
@@ -80,9 +77,6 @@ type (
 		err error
 	}
 )
-
-// otherRow labels findings that aren't about one analyzed Workflow Type.
-const otherRow = "Namespace, Schedules, and code"
 
 type typeRow struct {
 	name     string
@@ -270,21 +264,10 @@ func (m *model) buildRows() {
 	for i := range m.rows {
 		byType[m.rows[i].name] = &m.rows[i]
 	}
-	// Findings about the Namespace, Schedules, metrics, or code may not
-	// belong to an analyzed Workflow Type; they get a row of their own.
-	other := typeRow{name: otherRow, monthly: -1}
 	for _, f := range m.report.Findings {
 		if r := byType[f.WorkflowType]; r != nil {
 			r.findings = append(r.findings, f)
-			continue
 		}
-		other.findings = append(other.findings, f)
-		if p := f.ProjectedMonthly; p != nil {
-			other.saved += p.Actions
-		}
-	}
-	if len(other.findings) > 0 {
-		m.rows = append(m.rows, other)
 	}
 	// Most savings first; then the types that use the most Actions today.
 	sort.SliceStable(m.rows, func(i, j int) bool {
@@ -352,8 +335,6 @@ func (m *model) ziggyLine() string {
 			return "Reading Child Workflow histories for " + m.progress.WorkflowType + "."
 		case "detect":
 			return "Running detectors on " + m.progress.WorkflowType + "."
-		case "collect":
-			return "Running " + m.progress.WorkflowType + " checks."
 		}
 		return "Connecting to the Namespace."
 	}
@@ -612,12 +593,6 @@ func evidenceShort(e estimate.Evidence) string {
 	switch {
 	case len(e.EventIDs) > 0:
 		return "Events " + joinIDs(e.EventIDs)
-	case e.File != "":
-		return fmt.Sprintf("%s:%d", e.File, e.Line)
-	case e.Metric != "":
-		return "Metric over " + e.Window
-	case e.Setting != "":
-		return e.Setting
 	}
 	return "Evidence"
 }
@@ -627,12 +602,6 @@ func evidenceLong(e estimate.Evidence) string {
 	switch {
 	case e.WorkflowID != "":
 		return fmt.Sprintf("%s · events %s · %s", e.WorkflowID, joinIDs(e.EventIDs), e.Note)
-	case e.File != "":
-		return fmt.Sprintf("%s:%d · %s", e.File, e.Line, e.Note)
-	case e.Metric != "":
-		return fmt.Sprintf("%s over %s · %s", e.Metric, e.Window, e.Note)
-	case e.Setting != "":
-		return e.Setting + " · " + e.Note
 	}
 	return e.Note
 }

@@ -11,15 +11,15 @@ import (
 
 func init() {
 	detect.Register(wf001{})
-	detect.Register(wf002{})
 	detect.Register(tmr005{})
 	detect.Register(chd001{})
-	detect.Register(nex001{})
 	detect.Register(nex002{})
 }
 
 // wf001 finds Workflows that only wrap one Activity. Child Workflows are
-// left to CHD-001 and Nexus handlers to NEX-001, so a run is flagged once.
+// left to CHD-001. Nexus handlers are skipped: a Nexus Operation, not a
+// client, starts them, so a client-started Standalone Activity can't
+// replace them.
 type wf001 struct{}
 
 func (wf001) ID() string                    { return "WF-001" }
@@ -58,52 +58,9 @@ func leadingTimer(ex *model.Execution) *model.Timer {
 	return t
 }
 
-// wf002 finds Workflows that wait on one Timer, then run one Activity.
-type wf002 struct{}
-
-func (wf002) ID() string                    { return "WF-002" }
-func (wf002) Confidence() detect.Confidence { return detect.High }
-func (wf002) Features() []string {
-	return []string{"standalone-activity", "standalone-activity-start-delay"}
-}
-
-func (wf002) Detect(ex *model.Execution, c *detect.Context) []detect.Match {
-	t := delayThenOneActivity(ex, c)
-	if t == nil {
-		return nil
-	}
-	a := ex.Activities[0]
-	return []detect.Match{{
-		EventIDs: []int64{t.StartedEventID, a.ScheduledEventID},
-		Note:     fmt.Sprintf("the Workflow waits %s, then only runs Activity %s", t.Duration, a.Type),
-		// A Standalone Activity with a start delay replaces the Workflow
-		// start and the Timer.
-		ActionsSaved: startActions(c) + eventActions(c, enumspb.EVENT_TYPE_TIMER_STARTED),
-		Keys:         []string{ex.WorkflowType, a.Type},
-	}}
-}
-
-// delayThenOneActivity returns the leading Timer when the execution is a
-// Timer followed by one Activity and nothing else.
-func delayThenOneActivity(ex *model.Execution, c *detect.Context) *model.Timer {
-	if ex.Start.ParentWorkflowID != "" || startedByNexus(ex) {
-		return nil
-	}
-	n := countOf(ex, c)
-	if !finished(ex) || n.activities != 1 || n.timers != 1 || n.signals != 0 || n.updates != 0 ||
-		n.children != 0 || n.nexus != 0 || n.billableUpserts != 0 || n.localActivityMarkers != 0 || ex.Start.CronSchedule != "" {
-		return nil
-	}
-	t := leadingTimer(ex)
-	if t == nil || ex.Activities[0].ScheduledEventID < t.EndEventID {
-		return nil
-	}
-	return t
-}
-
 // tmr005 finds Workflows whose first command is a Timer that delays the
 // real work. A Timer canceled early is a wait, not a delay, so only fired
-// Timers count. Executions that WF-002 covers are left to it.
+// Timers count.
 type tmr005 struct{}
 
 func (tmr005) ID() string                    { return "TMR-005" }
@@ -115,7 +72,7 @@ func (tmr005) Detect(ex *model.Execution, c *detect.Context) []detect.Match {
 		return nil
 	}
 	t := leadingTimer(ex)
-	if t == nil || delayThenOneActivity(ex, c) != nil {
+	if t == nil {
 		return nil
 	}
 	// A Signal or Update before the Timer fired suggests the Timer guards a
@@ -164,27 +121,6 @@ func (chd001) Detect(ex *model.Execution, c *detect.Context) []detect.Match {
 		})
 	}
 	return out
-}
-
-// nex001 finds Workflows started by a Nexus Operation that only run one
-// Activity. It runs on the handler's Workflow Type: see startedByNexus.
-type nex001 struct{}
-
-func (nex001) ID() string                    { return "NEX-001" }
-func (nex001) Confidence() detect.Confidence { return detect.Advisory }
-func (nex001) Features() []string            { return []string{"nexus-standalone-activity"} }
-
-func (nex001) Detect(ex *model.Execution, c *detect.Context) []detect.Match {
-	if !startedByNexus(ex) || !onlyOneActivity(ex, c) {
-		return nil
-	}
-	a := ex.Activities[0]
-	return []detect.Match{{
-		EventIDs:     []int64{ex.Start.EventID, a.ScheduledEventID},
-		Note:         fmt.Sprintf("a Nexus Operation started this Workflow, which only runs Activity %s", a.Type),
-		ActionsSaved: startActions(c),
-		Keys:         []string{ex.WorkflowType, a.Type},
-	}}
 }
 
 // nex002 finds Workflows that only call one Nexus Operation.

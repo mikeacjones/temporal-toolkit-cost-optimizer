@@ -4,5 +4,5 @@ package kb
 
 import "embed"
 
-//go:embed billing guidance checks features.yaml
+//go:embed billing guidance features.yaml
 var FS embed.FS

@@ -34,21 +34,20 @@ const (
 // here.
 type Settings struct {
 	Target TargetSettings `toml:"target"`
-	// Repos are the user's repos, for code checks and SDK versions.
-	Repos   []string        `toml:"repos,omitempty"`
-	Metrics MetricsSettings `toml:"metrics,omitempty"`
+	// Repos are the user's repos, for reading SDK versions.
+	Repos []string `toml:"repos,omitempty"`
 }
 
-// MetricsSettings configure the Cloud metrics checks. The OpenMetrics API
-// key lives in the keychain under MetricsKeyName.
-type MetricsSettings struct {
-	// PrometheusURL is an optional Prometheus-compatible server that stores
-	// OpenMetrics scrapes, for checks that need days of data.
-	PrometheusURL string `toml:"prometheus_url,omitempty"`
+// ResolveRepos returns repos, or the saved repos when it's empty.
+func ResolveRepos(repos []string) []string {
+	if len(repos) > 0 {
+		return repos
+	}
+	if st, err := LoadSettings(); err == nil {
+		return st.Repos
+	}
+	return nil
 }
-
-// MetricsKeyName is the keychain entry for the OpenMetrics API key.
-const MetricsKeyName = "metrics-api-key"
 
 // TargetSettings remember which Namespace to analyze and how to reach it.
 type TargetSettings struct {
@@ -143,7 +142,7 @@ func DialAPIKey(address, namespace, key, label string) (*Target, error) {
 	if err != nil {
 		return nil, fmt.Errorf("connect to %s: %w", address, err)
 	}
-	return &Target{Profile: label, Address: address, Namespace: namespace, Client: c, APIKey: key}, nil
+	return &Target{Profile: label, Address: address, Namespace: namespace, Client: c}, nil
 }
 
 // ProfileInfo describes one profile in temporal.toml, without secrets.

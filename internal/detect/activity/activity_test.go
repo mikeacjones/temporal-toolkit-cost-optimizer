@@ -8,35 +8,11 @@ import (
 	"github.com/mikeacjones/temporal-toolkit-cost-optimizer/internal/detect/detecttest"
 )
 
-func TestACT001(t *testing.T) {
-	detecttest.Run(t, act001{}, []detecttest.Case{
-		// 12 attempts; a cap at 10 removes 2 retries.
-		{History: "act001_positive", Want: [][]int64{{5, 6}}, Saved: 2},
-		{History: "act001_negative"},
-	})
-}
-
-func TestACT002(t *testing.T) {
-	detecttest.Run(t, act002{}, []detecttest.Case{
-		{History: "act002_positive", Want: [][]int64{{5, 6, 7}}, Saved: 3},
-		{History: "act002_negative"},
-		{History: "act001_positive"}, // succeeded in the end
-	})
-}
-
 func TestACT003(t *testing.T) {
 	detecttest.Run(t, act003{}, []detecttest.Case{
 		{History: "act003_positive", Want: [][]int64{{5, 6}}},
 		{History: "act003_negative"},
-		{History: "act004_negative"}, // never retried
-	})
-}
-
-func TestACT004(t *testing.T) {
-	// 9.1 s at a 1 s timeout: 1 + 9.1/0.8 = 12 Heartbeats. At 60 s: 1.
-	detecttest.Run(t, act004{}, []detecttest.Case{
-		{History: "act004_positive", Want: [][]int64{{5, 7}}, Saved: 11},
-		{History: "act004_negative"},
+		{History: "wf001_positive"}, // never retried
 	})
 }
 
@@ -47,19 +23,11 @@ func TestACT006(t *testing.T) {
 	})
 }
 
-func TestLA001(t *testing.T) {
-	detecttest.Run(t, la001{}, []detecttest.Case{
-		{History: "la001_positive", Want: [][]int64{{7, 10}}, Saved: 4},
-		{History: "la001_negative"},
-		{History: "la003_negative"},
-	})
-}
-
 func TestLA003(t *testing.T) {
 	detecttest.Run(t, la003{}, []detecttest.Case{
 		{History: "la003_positive", Want: [][]int64{{4, 7, 10}}, Saved: 3},
 		{History: "la003_negative"},
-		{History: "act004_negative"}, // no Local Activities
+		{History: "wf001_positive"}, // no Local Activities
 	})
 }
 

@@ -6,5 +6,4 @@ import (
 	_ "github.com/mikeacjones/temporal-toolkit-cost-optimizer/internal/workloads/searchattr"
 	_ "github.com/mikeacjones/temporal-toolkit-cost-optimizer/internal/workloads/shape"
 	_ "github.com/mikeacjones/temporal-toolkit-cost-optimizer/internal/workloads/storage"
-	_ "github.com/mikeacjones/temporal-toolkit-cost-optimizer/internal/workloads/timer"
 )

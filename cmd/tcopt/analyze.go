@@ -14,7 +14,6 @@ import (
 	"golang.org/x/term"
 
 	"github.com/mikeacjones/temporal-toolkit-cost-optimizer/internal/analyze"
-	"github.com/mikeacjones/temporal-toolkit-cost-optimizer/internal/collect"
 	"github.com/mikeacjones/temporal-toolkit-cost-optimizer/internal/config"
 	"github.com/mikeacjones/temporal-toolkit-cost-optimizer/internal/history"
 	"github.com/mikeacjones/temporal-toolkit-cost-optimizer/internal/report"
@@ -100,9 +99,7 @@ per second, so tcopt rate-limits itself (--rps).`,
 			opts.Window = window
 			opts.Types = splitList(types)
 			opts.Detectors = splitList(detectors)
-			src := collect.Resolve(t, repos)
-			opts.Collectors, opts.Caveats = collect.Collectors(src)
-			opts.RepoPaths = src.Repos
+			opts.RepoPaths = config.ResolveRepos(repos)
 
 			fmt.Fprintf(os.Stderr, "Analyzing %s at %s with profile %s\n", t.Namespace, t.Address, t.Profile)
 			rep, err := analyze.Run(ctx, r, opts, stderrProgress())
@@ -135,7 +132,7 @@ per second, so tcopt rate-limits itself (--rps).`,
 	cmd.Flags().DurationVar(&window, "window", 7*24*time.Hour, "look at executions started within this window")
 	cmd.Flags().StringVar(&detectors, "detectors", "", "comma-separated detector IDs (default: all)")
 	cmd.Flags().IntVar(&opts.Parallel, "parallel", 4, "history fetches in flight")
-	cmd.Flags().StringArrayVar(&repos, "repo", nil, "a repo to run code checks on and read SDK versions from (repeatable; default: the saved repos)")
+	cmd.Flags().StringArrayVar(&repos, "repo", nil, "a repo to read SDK versions from (repeatable; default: the saved repos)")
 	cmd.Flags().BoolVar(&opts.IncludePreview, "include-preview", false, "show findings whose only fix is a pre-release feature")
 	cmd.Flags().StringVarP(&format, "format", "f", "md", "report format: "+strings.Join(report.Formats, ", "))
 	cmd.Flags().StringVarP(&out, "out", "o", "", "write the report to a file instead of stdout")
@@ -160,12 +157,10 @@ func stderrProgress() func(analyze.Progress) {
 			line = "Fetching Child Workflow histories for " + p.WorkflowType
 		case "detect":
 			line = "Running detectors on " + p.WorkflowType
-		case "collect":
-			line = "Running " + p.WorkflowType + " checks"
 		}
 		if tty {
 			fmt.Fprintf(os.Stderr, "\r\033[K%s", line)
-			if p.Stage == "detect" || p.Stage == "collect" {
+			if p.Stage == "detect" {
 				fmt.Fprintln(os.Stderr)
 			}
 			return

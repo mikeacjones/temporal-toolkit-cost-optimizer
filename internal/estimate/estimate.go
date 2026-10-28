@@ -1,6 +1,5 @@
 // Package estimate runs detectors over a sample of executions and turns their
-// matches into findings with prevalence and Actions saved. It also defines
-// the Finding format that config, metric, and code checks report in.
+// matches into findings with prevalence and Actions saved.
 package estimate
 
 import (
@@ -16,24 +15,17 @@ import (
 // MaxEvidence caps how many examples a finding cites.
 const MaxEvidence = 5
 
-// Finding sources.
-const (
-	SourceHistory = "history" // history detectors (section 6.4)
-	SourceMetrics = "metrics" // MET checks
-	SourceConfig  = "config"  // CFG checks
-	SourceCode    = "code"    // CODE checks
-)
+// SourceHistory marks findings from the history detectors (section 6.4).
+const SourceHistory = "history"
 
-// Finding is one detector's or check's result. History findings are per
-// Workflow Type; other sources may leave WorkflowType empty when the finding
-// is about the whole Namespace or the repo.
+// Finding is one detector's result for one Workflow Type.
 type Finding struct {
 	ID           string            `json:"id"`
 	Title        string            `json:"title"`
 	Source       string            `json:"source"`
 	WorkflowType string            `json:"workflowType,omitempty"`
 	Confidence   detect.Confidence `json:"confidence"`
-	// Prevalence is set for history findings, which come from a sample.
+	// Prevalence is how much of the sample matched.
 	Prevalence               *Prevalence `json:"prevalence,omitempty"`
 	ActionsSavedPerExecution Percentiles `json:"actionsSavedPerExecution"`
 	ProjectedMonthly         *Projection `json:"projectedMonthly,omitempty"`
@@ -82,9 +74,8 @@ func Summarize(xs []float64) Percentiles {
 	return p
 }
 
-// Projection is what a finding would save in a month. History findings
-// scale the sample to the month's executions; other sources set it
-// directly.
+// Projection is what a finding would save in a month, scaling the sample to
+// the month's executions.
 type Projection struct {
 	Executions int64   `json:"executions,omitempty"`
 	Actions    float64 `json:"actions"`
@@ -94,24 +85,12 @@ type Projection struct {
 	RetainedGBHours float64 `json:"retainedGbHours,omitempty"`
 }
 
-// Evidence cites what proves a finding: events in an execution, a
-// Namespace setting, a metric series, or a line of code.
+// Evidence cites the events in an execution that prove a finding.
 type Evidence struct {
 	WorkflowID string  `json:"workflowId,omitempty"`
 	RunID      string  `json:"runId,omitempty"`
 	EventIDs   []int64 `json:"eventIds,omitempty"`
-	// Setting names a Namespace or Schedule setting, such as
-	// "retention_days" or "schedule/nightly-report".
-	Setting string `json:"setting,omitempty"`
-	// Metric names a series, such as
-	// `temporal_cloud_v1_billable_action_count{action_type="query_workflow"}`,
-	// and Window the time range it covers.
-	Metric string `json:"metric,omitempty"`
-	Window string `json:"window,omitempty"`
-	// File and Line point at code.
-	File string `json:"file,omitempty"`
-	Line int    `json:"line,omitempty"`
-	Note string `json:"note"`
+	Note       string  `json:"note"`
 }
 
 // Input describes one Workflow Type's sample.

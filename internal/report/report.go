@@ -84,7 +84,7 @@ func writeFinding(b *strings.Builder, f estimate.Finding) {
 	} else {
 		fmt.Fprintf(b, "### %s: %s\n\n", f.ID, title)
 	}
-	fmt.Fprintf(b, "Confidence %s, from %s.", strings.ToUpper(string(f.Confidence)), sourceName(f.Source))
+	fmt.Fprintf(b, "Confidence %s, from Event History.", strings.ToUpper(string(f.Confidence)))
 	if p := f.Prevalence; p != nil {
 		fmt.Fprintf(b, " Matched %d of %d sampled executions (95%% interval %.0f%% to %.0f%%).",
 			p.Matched, p.Sampled, p.Low*100, p.High*100)
@@ -117,29 +117,10 @@ func writeFinding(b *strings.Builder, f estimate.Finding) {
 	b.WriteString("\n")
 }
 
-func sourceName(s string) string {
-	switch s {
-	case estimate.SourceConfig:
-		return "Namespace configuration"
-	case estimate.SourceMetrics:
-		return "Cloud metrics"
-	case estimate.SourceCode:
-		return "your code"
-	}
-	return "Event History"
-}
-
 // evidenceLine describes one piece of evidence in Markdown.
 func evidenceLine(e estimate.Evidence) string {
-	switch {
-	case e.WorkflowID != "":
+	if e.WorkflowID != "" {
 		return fmt.Sprintf("`%s` run `%s`, events %s: %s", e.WorkflowID, e.RunID, ids(e.EventIDs), e.Note)
-	case e.File != "":
-		return fmt.Sprintf("`%s:%d`: %s", e.File, e.Line, e.Note)
-	case e.Metric != "":
-		return fmt.Sprintf("`%s` over %s: %s", e.Metric, e.Window, e.Note)
-	case e.Setting != "":
-		return fmt.Sprintf("`%s`: %s", e.Setting, e.Note)
 	}
 	return e.Note
 }

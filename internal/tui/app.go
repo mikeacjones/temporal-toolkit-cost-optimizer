@@ -5,7 +5,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/mikeacjones/temporal-toolkit-cost-optimizer/internal/collect"
 	"github.com/mikeacjones/temporal-toolkit-cost-optimizer/internal/config"
 	"github.com/mikeacjones/temporal-toolkit-cost-optimizer/internal/history"
 )
@@ -50,9 +49,7 @@ func (a *app) newOverview(t *config.Target, who string) *model {
 	r := history.NewReader(t.Client.WorkflowService(), t.Namespace, a.opts.RPS, a.opts.CacheDir)
 	conn := connection{who: who, namespace: t.Namespace, reader: r, target: t}
 	opts := a.opts.Analyze
-	src := collect.Resolve(t, a.opts.Repos)
-	opts.Collectors, opts.Caveats = collect.Collectors(src)
-	opts.RepoPaths = src.Repos
+	opts.RepoPaths = config.ResolveRepos(a.opts.Repos)
 	return newModel(a.ctx, conn, opts, a.opts.Motion)
 }
 

@@ -18,37 +18,7 @@ import (
 var localActivityMarkers = []string{"LocalActivity", "core_local_activity"}
 
 func init() {
-	detect.Register(la001{})
 	detect.Register(la003{})
-}
-
-// la001 finds Local Activity retries that Temporal bills: attempts recorded
-// in Workflow Task metering, which happen once a Local Activity's retries
-// outlast the first Workflow Task.
-type la001 struct{}
-
-func (la001) ID() string                    { return "LA-001" }
-func (la001) Confidence() detect.Confidence { return detect.High }
-
-func (la001) Detect(ex *model.Execution, c *detect.Context) []detect.Match {
-	var ids []int64
-	var attempts uint32
-	for _, wt := range ex.WorkflowTasks {
-		if wt.NonfirstLocalActivityAttempts > 0 {
-			ids = append(ids, wt.CompletedEventID)
-			attempts += wt.NonfirstLocalActivityAttempts
-		}
-	}
-	if attempts == 0 {
-		return nil
-	}
-	return []detect.Match{{
-		EventIDs: ids,
-		Note: fmt.Sprintf("%d Local Activity attempts ran after the first Workflow Task, across %d Workflow Tasks",
-			attempts, len(ids)),
-		ActionsSaved: laRetryActions(c.Rules, attempts),
-		Keys:         localActivityKeys(ex),
-	}}
 }
 
 // la003 finds Local Activities that outlast the Workflow Task timeout. The

@@ -16,18 +16,8 @@ import (
 
 // Rules are the billing rules for one knowledge-base snapshot.
 type Rules struct {
-	Snapshot             string `yaml:"snapshot"`
-	Rules                []Rule `yaml:"rules"`
-	NamespaceMultipliers []struct {
-		Setting string  `yaml:"setting"`
-		Actions float64 `yaml:"actions"`
-		Storage float64 `yaml:"storage"`
-		// FloorPerExtraTRU is the hourly Action floor for each Provisioned
-		// Capacity TRU after the first.
-		FloorPerExtraTRU float64 `yaml:"floor_actions_per_hour_per_extra_tru"`
-		Note             string  `yaml:"note"`
-		Source           string  `yaml:"source"`
-	} `yaml:"namespace_multipliers"`
+	Snapshot     string `yaml:"snapshot"`
+	Rules        []Rule `yaml:"rules"`
 	NotInHistory []struct {
 		Operation string  `yaml:"operation"`
 		Actions   float64 `yaml:"actions"`
@@ -160,15 +150,4 @@ func (r *Rules) OperationActions(op string) (float64, bool) {
 		}
 	}
 	return 0, false
-}
-
-// TRUFloorPerHour returns the hourly Action floor for each Provisioned
-// Capacity TRU after the first, or 0 when the rules don't list it.
-func (r *Rules) TRUFloorPerHour() float64 {
-	for _, m := range r.NamespaceMultipliers {
-		if m.Setting == "provisioned_capacity" {
-			return m.FloorPerExtraTRU
-		}
-	}
-	return 0
 }

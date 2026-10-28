@@ -26,29 +26,13 @@ func init() {
 		Name:    "activity",
 		Workers: startWorkers,
 		Runs: []workloads.Run{
-			// ACT-001: twelve attempts; a few retries.
-			{Golden: "act001_positive", Workflow: CallWithRetry, Args: []any{RetryInput{Activity: "Flaky", FailUntil: 12, Interval: ms(20)}}},
-			{Golden: "act001_negative", Workflow: CallWithRetry, Args: []any{RetryInput{Activity: "Flaky", FailUntil: 3, Interval: ms(20)}}},
-			// ACT-002: the same error on every attempt, against an error that changes.
-			{Golden: "act002_positive", Workflow: CallWithRetry, Args: []any{RetryInput{Activity: "Reject", MaxAttempts: 4, Interval: ms(20)}}},
-			{Golden: "act002_negative", Workflow: CallWithRetry, Args: []any{RetryInput{Activity: "Varying", MaxAttempts: 4, Interval: ms(20)}}},
 			// ACT-003: unlimited attempts, against a capped policy.
 			{Golden: "act003_positive", Workflow: CallWithRetry, Args: []any{RetryInput{Activity: "Flaky", FailUntil: 3, Interval: ms(20)}}},
 			{Golden: "act003_negative", Workflow: CallWithRetry, Args: []any{RetryInput{Activity: "Flaky", FailUntil: 3, MaxAttempts: 5, Interval: ms(20)}}},
-			// ACT-004: a 9 s Activity that heartbeats with a 1 s timeout, against a short one.
-			{Golden: "act004_positive", Workflow: Heartbeating, Args: []any{9 * time.Second, time.Second}, Timeout: 2 * time.Minute},
-			{Golden: "act004_negative", Workflow: Heartbeating, Args: []any{500 * time.Millisecond, time.Second}},
 			// ACT-006: only a Worker without Ship polls until the Activity
 			// has failed; then a Worker with Ship joins.
 			{Golden: "act006_positive", Workflow: ShipOrder, Drive: joinShipWorker, Timeout: 2 * time.Minute},
 			{Golden: "act006_negative", Workflow: CallWithRetry, Args: []any{RetryInput{Activity: "Flaky", FailUntil: 2, Interval: ms(20)}}},
-			// LA-001: a Local Activity that keeps failing past the first
-			// Workflow Task, so its retries are billed; against one whose
-			// retries all fit in the first Workflow Task, which aren't.
-			{Golden: "la001_positive", Workflow: LocalRetry, Args: []any{8, 500 * time.Millisecond},
-				Options: client.StartWorkflowOptions{WorkflowTaskTimeout: 2 * time.Second}, Timeout: 2 * time.Minute},
-			{Golden: "la001_negative", Workflow: LocalRetry, Args: []any{3, 20 * time.Millisecond},
-				Options: client.StartWorkflowOptions{WorkflowTaskTimeout: 2 * time.Second}},
 			// LA-003: a 6 s Local Activity against a 2 s Workflow Task timeout.
 			{Golden: "la003_positive", Workflow: LocalSlow, Args: []any{6 * time.Second},
 				Options: client.StartWorkflowOptions{WorkflowTaskTimeout: 2 * time.Second}, Timeout: 2 * time.Minute},
@@ -57,8 +41,7 @@ func init() {
 		},
 		Load: []workloads.LoadItem{
 			{Weight: 30, Workflow: CallWithRetry, Args: []any{RetryInput{Activity: "Flaky", FailUntil: 12, Interval: ms(20)}}},
-			{Weight: 20, Workflow: CallWithRetry, Args: []any{RetryInput{Activity: "Reject", MaxAttempts: 4, Interval: ms(20)}}},
-			{Weight: 20, Workflow: LocalRetry, Args: []any{8, 500 * time.Millisecond},
+			{Weight: 20, Workflow: LocalSlow, Args: []any{6 * time.Second},
 				Options: client.StartWorkflowOptions{WorkflowTaskTimeout: 2 * time.Second}},
 		},
 	})
@@ -69,14 +52,9 @@ func init() {
 func startWorkers(c client.Client, tq string) (func(), error) {
 	w := worker.New(c, tq, worker.Options{})
 	w.RegisterWorkflow(CallWithRetry)
-	w.RegisterWorkflow(Heartbeating)
 	w.RegisterWorkflow(ShipOrder)
-	w.RegisterWorkflow(LocalRetry)
 	w.RegisterWorkflow(LocalSlow)
 	w.RegisterActivity(Flaky)
-	w.RegisterActivity(Reject)
-	w.RegisterActivity(Varying)
-	w.RegisterActivity(HeartbeatFor)
 	if err := w.Start(); err != nil {
 		return nil, err
 	}
@@ -115,39 +93,6 @@ func CallWithRetry(ctx workflow.Context, in RetryInput) error {
 func Flaky(ctx context.Context, failUntil int) error {
 	if a := int(activity.GetInfo(ctx).Attempt); a < failUntil {
 		return fmt.Errorf("upstream unavailable on attempt %d", a)
-	}
-	return nil
-}
-
-// Reject always fails with the same error, like a declined card.
-func Reject(context.Context, int) error {
-	return temporal.NewApplicationError("card declined: invalid card number", "PaymentDeclined")
-}
-
-// Varying always fails, with a message that changes per attempt.
-func Varying(ctx context.Context, _ int) error {
-	return fmt.Errorf("timeout talking to upstream after %d ms", 100*activity.GetInfo(ctx).Attempt)
-}
-
-// Heartbeating runs one Activity that heartbeats every 100 ms.
-func Heartbeating(ctx workflow.Context, d, heartbeatTimeout time.Duration) error {
-	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
-		StartToCloseTimeout: d + 30*time.Second,
-		HeartbeatTimeout:    heartbeatTimeout,
-	})
-	return workflow.ExecuteActivity(ctx, HeartbeatFor, d).Get(ctx, nil)
-}
-
-// HeartbeatFor heartbeats every 100 ms for d.
-func HeartbeatFor(ctx context.Context, d time.Duration) error {
-	end := time.Now().Add(d)
-	for time.Now().Before(end) {
-		activity.RecordHeartbeat(ctx)
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(100 * time.Millisecond):
-		}
 	}
 	return nil
 }
@@ -193,26 +138,6 @@ func joinShipWorker(ctx context.Context, c client.Client, run client.WorkflowRun
 	}
 	defer w.Stop()
 	return run.Get(ctx, nil)
-}
-
-// LocalRetry runs a Local Activity that fails until failUntil, retrying
-// every interval.
-func LocalRetry(ctx workflow.Context, failUntil int, interval time.Duration) error {
-	ctx = workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
-		StartToCloseTimeout: 5 * time.Second,
-		RetryPolicy: &temporal.RetryPolicy{
-			InitialInterval: interval, BackoffCoefficient: 1, MaximumInterval: interval,
-		},
-	})
-	return workflow.ExecuteLocalActivity(ctx, LocalFlaky, failUntil).Get(ctx, nil)
-}
-
-// LocalFlaky fails until failUntil.
-func LocalFlaky(ctx context.Context, failUntil int) error {
-	if a := int(activity.GetInfo(ctx).Attempt); a < failUntil {
-		return fmt.Errorf("cache miss on attempt %d", a)
-	}
-	return nil
 }
 
 // LocalSlow runs a Local Activity that sleeps for d.

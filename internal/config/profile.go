@@ -25,9 +25,6 @@ type Target struct {
 	Address   string
 	Namespace string
 	Client    client.Client
-	// APIKey is the key the connection uses, when it uses one. The config
-	// checks reuse it to read Namespace settings from the Cloud Ops API.
-	APIKey string
 }
 
 // Close closes the client.
@@ -78,7 +75,7 @@ func DialProfile(profile, configFile, namespace string) (*Target, error) {
 	if err != nil {
 		return nil, fmt.Errorf("connect to %s with profile %q: %w", opts.HostPort, label, err)
 	}
-	return &Target{Profile: label, Address: opts.HostPort, Namespace: opts.Namespace, Client: c, APIKey: prof.APIKey}, nil
+	return &Target{Profile: label, Address: opts.HostPort, Namespace: opts.Namespace, Client: c}, nil
 }
 
 // quiet drops SDK log lines so they don't draw over the TUI or mix into
